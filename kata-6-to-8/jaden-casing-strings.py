@@ -17,7 +17,7 @@ Note that the Java version expects a return value of null for an empty string or
 
 #This is one of my first Katas and it really blew my mind at the time how elegent python can be
 
-#my original solution
+#my original solutionP
 
 def toJadenCase(string):
     string_array = string.split(" ")
