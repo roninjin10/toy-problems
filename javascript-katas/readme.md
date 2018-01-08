@@ -1,1 +1,0 @@
-javascript reps in preperation for a technical interview with hack reactor
