@@ -23,7 +23,6 @@ class Calculator(object):
                 break
     while '+' in expression or '-' in expression:
         for index, item in enumerate(expression):
-            print(expression)
             if item == '-':
                 operand2 = Fraction(expression.pop(index+1))
                 expression.pop(index)
