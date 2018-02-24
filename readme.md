@@ -6,4 +6,6 @@ Codewars is great because after solving the problem, you vote for both the best 
 
 Included in this repository are the toughest problems I have solved so far along with some interesting easier ones.
 
+As of February 24th 2018 I have reached an overall Rank of 3 kyu.  I am 5 kyu in Javascript and 4 kyu in Python.
+
 My Codewars Profile: https://www.codewars.com/users/moosebeloose9
