@@ -15,58 +15,75 @@ To do this, you must implement the query() function. This function returns and o
 The methods are chainable and the query is executed by calling the execute() method.
 */
 
-type WhereFunction = (item: Object) => boolean
+export type WhereFunction = (item: Object) => boolean
 
-interface QueryParams {
+export interface QueryParams {
   select?: any
   from?: any[]
   groupBy?: Function
   where?: WhereFunction
+  orderBy?: Function
 }
 
 const identity = x => x
 
-export function query(params: QueryParams = {}, ...args: any[]) {
-  const _select = params.select || identity
-  function select(item?: any, ...args: any[]) {
-    if (_select !== identity) throw new Error('Duplicate SELECT')
-    return query({...params, select: item})
+export class Query {
+  static DEFAULT_PARAMS = {
+    select: identity,
+  }
+
+  private _select = Query.DEFAULT_PARAMS.select
+  private _from = Query.DEFAULT_PARAMS.from
+  private _where = Query.DEFAULT_PARAMS.select
+  private _orderBy = Query.DEFAULT_PARAMS.select
+  private _groupBy = Query.DEFAULT_PARAMS.select
+
+  private _params() {
+    return {select: this._select, from: this._from, where: this._where, orderBy: this._orderBy, groupBy: this._groupBy}
+  }
+
+  constructor(params: QueryParams = {}) {
+    function assignParam(param: string) {
+      this[param] = params[param] || Query.DEFAULT_PARAMS[param]
+    }
+    Object.keys(Query).forEach(assignParam)
+  }
+    
+  select(item?: any) {
+    if (this._select !== identity) throw new Error('Duplicate SELECT')
+    return new Query({...this._params(), select: item})
   }
   
-  const _from: any[] = params.from || []
-  function from(arr?: any[], ...args: any[]) {
-    if (_from.length !== 0) throw new Error('Duplicate FROM')
-    return query({...params, from: arr})
+  from(arr?: any[]) {
+    if (this._from.length !== 0) throw new Error('Duplicate FROM')
+    return new Query({...this._params(), from: arr})
   } 
-  
-  const _where: WhereFunction = params.where || ((...args: any[]) => true)
-  function where(cb?: WhereFunction, ...args: any[]) {
-    return query({...params, where: cb})
+  where(cb?: WhereFunction, ...args: any[]) {
+    return new Query({...this._params(), where: cb})
   }
   
-  function orderBy(...args: any[]){
-    return query({...params})
+  groupBy(groupByFunction: Function, ...args: any[]){
+    return new Query({...this._params(), groupBy: groupByFunction})
   }
   
-  const _groupBy: any = params.groupBy || null
-  function groupBy(groupByFunction: Function, ...args: any[]){
-    return query({...params, groupBy: groupByFunction})
+  orderBy(...args: any[]){
+    return new Query({...this._params()})
   }
   
-  function having(...args: any[]){
-    return query({...params})
+  having(...args: any[]){
+    return new Query({...this._params()})
   }
-  
-  function execute(...args: any[]){
-    const filtered = _from.filter(_where)
-     
+    
+  execute(...args: any[]){
+    const filtered = this._from.filter(this._where)
+    
     let grouped = filtered
     
-    if (_groupBy) {
-      const groups = _from.reduce((a,e) => {
-        if (!_where(e)) return a
+    if (this._groupBy) {
+      const groups = this._from.reduce((a,e) => {
+        if (!this._where(e)) return a
       
-        const group = _groupBy(e)
+        const group = this._groupBy(e)
         
         if (!a[group]) a[group] = []
         
@@ -79,10 +96,11 @@ export function query(params: QueryParams = {}, ...args: any[]) {
       grouped = Object.keys(groups).map(group => [group, groups[group]])
     }
     
-    const selected = grouped.map(_select)
-    console.log('test')
+    const selected = grouped.map(this._select)
     return selected
   }
-  
-  return { select, from, where, orderBy, groupBy, having, execute } 
+}
+
+export function query() {
+  return new Query()
 };
