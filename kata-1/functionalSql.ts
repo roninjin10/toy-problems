@@ -20,7 +20,7 @@ export type WhereFunction = (item: Object) => boolean
 export interface QueryParams {
   select?: any
   from?: any[]
-  groupBy?: Function
+  groupBy?: Function[]
   where?: WhereFunction
   orderBy?: Function
 }
@@ -28,76 +28,97 @@ export interface QueryParams {
 const identity = x => x
 
 export class Query {
-  static DEFAULT_PARAMS = {
+  private params: QueryParams = {
     select: identity,
-  }
-
-  private _select = Query.DEFAULT_PARAMS.select
-  private _from = Query.DEFAULT_PARAMS.from
-  private _where = Query.DEFAULT_PARAMS.select
-  private _orderBy = Query.DEFAULT_PARAMS.select
-  private _groupBy = Query.DEFAULT_PARAMS.select
-
-  private _params() {
-    return {select: this._select, from: this._from, where: this._where, orderBy: this._orderBy, groupBy: this._groupBy}
+    groupBy: [],
+    from: [],
+    where: () => true,
+    orderBy: () => 0,
   }
 
   constructor(params: QueryParams = {}) {
-    function assignParam(param: string) {
-      this[param] = params[param] || Query.DEFAULT_PARAMS[param]
+    this.params = {
+      ...this.params,
+      ...params,
     }
-    Object.keys(Query).forEach(assignParam)
   }
     
-  select(item?: any) {
-    if (this._select !== identity) throw new Error('Duplicate SELECT')
-    return new Query({...this._params(), select: item})
+  public select = (item?: any) => {
+    if (this.params.select !== identity) throw new Error('Duplicate SELECT')
+    return new Query({...this.params, select: item})
   }
   
-  from(arr?: any[]) {
-    if (this._from.length !== 0) throw new Error('Duplicate FROM')
-    return new Query({...this._params(), from: arr})
+  public from = (arr?: any[]) => {
+    if (this.params.from.length !== 0) throw new Error('Duplicate FROM')
+    return new Query({...this.params, from: arr})
   } 
-  where(cb?: WhereFunction, ...args: any[]) {
-    return new Query({...this._params(), where: cb})
+  
+  public where = (cb?: WhereFunction, ...args: any[]) => {
+    return new Query({...this.params, where: cb})
   }
   
-  groupBy(groupByFunction: Function, ...args: any[]){
-    return new Query({...this._params(), groupBy: groupByFunction})
+  public groupBy = (...groupByFunctions: Function[]) => {
+    return new Query({...this.params, groupBy: groupByFunctions})
   }
   
-  orderBy(...args: any[]){
-    return new Query({...this._params()})
+  public orderBy = (...args: any[]) => {
+    return new Query({...this.params})
   }
   
-  having(...args: any[]){
-    return new Query({...this._params()})
+  public having = (...args: any[]) => {
+    return new Query({...this.params})
   }
-    
-  execute(...args: any[]){
-    const filtered = this._from.filter(this._where)
-    
-    let grouped = filtered
-    
-    if (this._groupBy) {
-      const groups = this._from.reduce((a,e) => {
-        if (!this._where(e)) return a
-      
-        const group = this._groupBy(e)
-        
-        if (!a[group]) a[group] = []
-        
-        return {
-          ...a, 
-          [group]: [...a[group], e]
-        }
-      }, {})
-      
-      grouped = Object.keys(groups).map(group => [group, groups[group]])
+
+  public execute = (...args: any[]) => {
+    const asGroups = this.params.groupBy.reduce(
+      (a, groupByFunc) => this._groupify(a, groupByFunc), 
+      this.params.from,
+    )
+
+    const filtered = this._groupFilter(asGroups, this.params.where)
+
+    const select = this._groupMap(filtered, this.params.select)
+
+    return select
+  }
+
+  private _groupify = (group: any, groupByFunc: Function): any => {
+    return this._applyToGroups(group, (group) => {
+      return group.reduce((a, item) => {
+        const type = groupByFunc(item)
+        const firstOfType = !a.find(a => a[0] === type)
+
+        let out = firstOfType 
+          ? [...a, [type, []]]
+          : [...a]
+
+        return out.map(group => {
+          if (group[0] !== type) {
+            return group
+          }
+          return [type, [...group[1], item]]
+        })
+      }, [])
+    })
+  }
+
+  private _applyToGroups = (group: any, cb: Function): any => {
+    const isGrouped = typeof group[0] === 'string'
+
+    if (isGrouped) {
+      const newItems = this._applyToGroups(group[1], cb)
+      return !newItems.length ? [group[0], newItems] : []
     }
-    
-    const selected = grouped.map(this._select)
-    return selected
+
+    return cb(group)
+  }
+
+  private _groupFilter = (group: any, whereFunc: WhereFunction): any => {
+    return this._applyToGroups(group, (group: any) => group.filter(whereFunc))
+  }
+
+  private _groupMap = (group: any, select: Function): any => {
+    return this._applyToGroups(group, (group: any) => group.map(select))
   }
 }
 
