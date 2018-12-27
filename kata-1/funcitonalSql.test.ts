@@ -6,7 +6,7 @@ import {
 } from "chai";
 
 describe("SQL tests", function() {
-  xit("Basic SELECT tests", () => {
+  it("Basic SELECT tests", () => {
     var numbers = [1, 2, 3];
     expect(query().select().from(numbers).execute()).to.deep.equal(numbers);
     expect(query().select().execute()).to.deep.equal([], 'No FROM clause produces empty array');
@@ -15,7 +15,7 @@ describe("SQL tests", function() {
     expect(query().from(numbers).select().execute()).to.deep.equal(numbers, 'The order does not matter');
   });
 
-  xit("Basic SELECT and WHERE over objects", () => {
+  it("Basic SELECT and WHERE over objects", () => {
     var persons = [{
         name: 'Peter',
         profession: 'teacher',
@@ -89,7 +89,6 @@ describe("SQL tests", function() {
     expect(query().where(isTeacher).from(persons).select(name).execute()).to.deep.equal(["Peter", "Michael", "Peter"]);
   });
 
-  it("GROUP BY tests", () => {
     var persons = [{
         name: 'Peter',
         profession: 'teacher',
@@ -139,6 +138,7 @@ describe("SQL tests", function() {
     } 
 
     // SELECT * FROM persons GROUPBY profession <- Bad in SQL but possible in JavaScript
+  it("GROUP BY tests 1", () => {
     expect(query().select().from(persons).groupBy(profession).execute()).to.deep.equal([
       ["teacher", [{
         "name": "Peter",
@@ -179,12 +179,14 @@ describe("SQL tests", function() {
         "maritalStatus": "married"
       }]]
     ]); 
+  })
 
     function isTeacher(person) {
       return person.profession === 'teacher';
     } 
 
     // SELECT * FROM persons WHERE profession='teacher' GROUPBY profession
+  it("GROUP BY tests 2", () => {
     expect(query().select().from(persons).where(isTeacher).groupBy(profession).execute()).to.deep.equal([
       ["teacher", [{
         "name": "Peter",
@@ -203,18 +205,22 @@ describe("SQL tests", function() {
         "maritalStatus": "married"
       }]]
     ]); 
+  })
 
     function professionGroup(group) {
       return group[0];
     } 
     // SELECT profession FROM persons GROUPBY profession
+  it("GROUP BY tests 3", () => {
     expect(query().select(professionGroup).from(persons).groupBy(profession).execute()).to.deep.equal(["teacher", "scientific", "politician"]);
+
+  })
 
     function name(person) {
       return person.name;
     }
-
     // SELECT * FROM persons WHERE profession='teacher' GROUPBY profession, name
+  it("GROUP BY tests 4", () => {
     expect(query().select().from(persons).groupBy(profession, name).execute()).to.deep.equal([
       ["teacher", [
         ["Peter", [{
@@ -263,6 +269,7 @@ describe("SQL tests", function() {
         }]]
       ]]
     ]);
+  })
 
     function age(person) {
       return person.age;
@@ -272,6 +279,7 @@ describe("SQL tests", function() {
       return person.maritalStatus;
     }
 
+  it("GROUP BY tests 5", () => {
     // SELECT * FROM persons WHERE profession='teacher' GROUPBY profession, name, age
     expect(query().select().from(persons).groupBy(profession, name, age, maritalStatus).execute()).to.deep.equal([
       ["teacher", [
@@ -342,18 +350,20 @@ describe("SQL tests", function() {
         ]]
       ]]
     ]);
-
+  })
     function professionCount(group) {
       return [group[0], group[1].length];
     }
 
+  it("GROUP BY tests 7", () => {
     // SELECT profession, count(profession) FROM persons GROUPBY profession
     expect(query().select(professionCount).from(persons).groupBy(profession).execute()).to.deep.equal([
       ["teacher", 3],
       ["scientific", 3],
       ["politician", 1],
     ]);
-
+  })
+  it("GROUP BY tests final", () => {
     function naturalCompare(value1, value2) {
       if (value1 < value2) {
         return -1;
@@ -445,7 +455,7 @@ describe("SQL tests", function() {
     expect(query().select().from(numbers).where(lessThan3, greaterThan4).execute()).to.deep.equal([1, 2, 5, 6, 7, 8, 9]);
   });
 
-  xit("Frequency tests", () => {
+  it("Frequency tests", () => {
     var persons = [
       ['Peter', 3],
       ['Anna', 4],
@@ -529,7 +539,7 @@ describe("SQL tests", function() {
     }]);
   });
 
-  xit("Join tests", () => {
+  it("Join tests", () => {
     var teachers = [{
         teacherId: '1',
         teacherName: 'Peter'
@@ -597,7 +607,7 @@ describe("SQL tests", function() {
 
   });
 
-  xit("Duplication exception tests", () => {
+  it("Duplication exception tests", () => {
     function checkError(fn, duplicate) {
       try {
         fn();

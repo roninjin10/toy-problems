@@ -85,9 +85,6 @@ export class Query {
   private _groupify = (queryResult: any, groupByFunc: Function): any => {
     return this._applyToGroups(queryResult, (group) => {
       return group.reduce((a, item) => {
-        if (typeof item !== 'number' && group.length !== 7) {
-          console.log('wtf', typeof item !== 'number', typeof item, group, queryResult)
-        }
         const type = groupByFunc(item)
         const firstOfType = !a.find(a => a[0] === type)
 
@@ -107,7 +104,7 @@ export class Query {
   }
 
   private _applyToGroups = (group: any, cb: Function): any => {
-    const isGrouped = typeof group[0] === 'string' || typeof group[0] === 'number'
+    const isGrouped = group.length === 2 && (typeof group[0] === 'string' || typeof group[0] === 'number') 
 
     if (isGrouped) {
       const newItems = this._applyToGroups(group[1], cb)
