@@ -77,14 +77,17 @@ export class Query {
 
     const filtered = this._groupFilter(asGroups, this.params.where)
 
-    const select = this._groupMap(filtered, this.params.select)
+    const select = filtered.map(this.params.select)
 
     return select
   }
 
-  private _groupify = (group: any, groupByFunc: Function): any => {
-    return this._applyToGroups(group, (group) => {
+  private _groupify = (queryResult: any, groupByFunc: Function): any => {
+    return this._applyToGroups(queryResult, (group) => {
       return group.reduce((a, item) => {
+        if (typeof item !== 'number' && group.length !== 7) {
+          console.log('wtf', typeof item !== 'number', typeof item, group, queryResult)
+        }
         const type = groupByFunc(item)
         const firstOfType = !a.find(a => a[0] === type)
 
@@ -92,22 +95,29 @@ export class Query {
           ? [...a, [type, []]]
           : [...a]
 
-        return out.map(group => {
-          if (group[0] !== type) {
-            return group
+        return out.map(subGroup => {
+          if (subGroup[0] === type) {
+            return [subGroup[0], [...subGroup[1], item]]
           }
-          return [type, [...group[1], item]]
+          return subGroup
         })
       }, [])
+        
     })
   }
 
   private _applyToGroups = (group: any, cb: Function): any => {
-    const isGrouped = typeof group[0] === 'string'
+    const isGrouped = typeof group[0] === 'string' || typeof group[0] === 'number'
 
     if (isGrouped) {
       const newItems = this._applyToGroups(group[1], cb)
-      return !newItems.length ? [group[0], newItems] : []
+      return newItems.length ? [group[0], newItems] : []
+    }
+
+    const isNestedGroup = Array.isArray(group[0]) 
+
+    if (isNestedGroup) {
+      return group.map(nestedGroup => this._applyToGroups(nestedGroup, cb)).filter(nestedGroup => nestedGroup.length > 0)
     }
 
     return cb(group)
