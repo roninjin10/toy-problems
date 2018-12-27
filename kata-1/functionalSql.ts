@@ -43,14 +43,14 @@ export class Query {
     }
   }
     
-  public select = (item?: any) => {
+  public select = (item: any = (x => x)) => {
     if (this.params.select !== identity) throw new Error('Duplicate SELECT')
     return new Query({...this.params, select: item})
   }
   
-  public from = (arr?: any[]) => {
+  public from = (...collections: any[][]) => {
     if (this.params.from.length !== 0) throw new Error('Duplicate FROM')
-    return new Query({...this.params, from: arr})
+    return new Query({...this.params, from: collections[0]})
   } 
   
   public where = (cb?: WhereFunction, ...args: any[]) => {
